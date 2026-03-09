@@ -54,3 +54,57 @@ npx expo start         # Start Metro dev server
 ```
 
 Note: Changes to the native module (`modules/native-torch-transmitter/`) require a full native rebuild (`expo run:android`), not just a hot reload.
+
+## Folder Structure
+
+```
+ProjectL289Mobile/
+├── app/                          # Screens & navigation (Expo Router, file-based routing)
+│   ├── (tabs)/
+│   │   ├── index.tsx             # Main flash screen — timezone picker, offset selector, transmission UI
+│   │   ├── explore.tsx           # Documentation / info screen
+│   │   └── _layout.tsx           # Tab bar layout
+│   ├── _layout.tsx               # Root layout (wraps everything)
+│   └── modal.tsx                 # Modal screen
+│
+├── src/                          # Core logic (cross-platform TypeScript)
+│   ├── encoder.ts                # WOP protocol: frame assembly, CRC-8, bit stuffing, time compensation
+│   ├── timezones.ts              # Timezone database with DST rules and event computation
+│   ├── transmitter.ts            # Screen flash transmitter (requestAnimationFrame-based)
+│   └── nativeTorchTransmitter.ts # JS wrapper for the native torch module
+│
+├── modules/                      # Local Expo native modules (auto-detected by autolinking)
+│   └── native-torch-transmitter/
+│       ├── expo-module.config.json           # Tells Expo this is a module + which platforms
+│       ├── src/
+│       │   ├── index.ts                      # JS exports (transmitBitstream, TransmitResult type)
+│       │   └── NativeTorchTransmitterModule.ts  # requireNativeModule bridge
+│       └── android/
+│           ├── build.gradle                  # Android library build config
+│           ├── src/main/AndroidManifest.xml
+│           └── src/main/java/expo/modules/nativetorchtransmitter/
+│               └── NativeTorchTransmitterModule.kt  # THE KEY FILE — Kotlin torch transmitter
+│
+├── android/                      # Generated Android project (managed by Expo prebuild)
+│   └── app/src/main/java/com/anonymous/ProjectL289Mobile/
+│       ├── MainActivity.kt       # Android entry point (mostly boilerplate)
+│       └── MainApplication.kt    # App initialization (mostly boilerplate)
+│
+├── ios/                          # Generated iOS project (managed by Expo prebuild)
+│
+├── components/                   # Reusable React Native UI components
+├── constants/                    # Theme colors, etc.
+├── hooks/                        # React hooks
+├── assets/                       # Images, fonts, icons
+├── docs/plans/                   # Design docs and implementation plans
+│
+├── app.json                      # Expo config (app name, plugins, permissions, build settings)
+├── package.json                  # Dependencies and scripts
+└── tsconfig.json                 # TypeScript config
+```
+
+**Key things to know:**
+- `app/` uses file-based routing — the file path IS the route. `(tabs)` is a layout group, not a URL segment.
+- `src/` is your code, `android/` and `ios/` are generated scaffolding — edit them rarely.
+- `modules/` is where local native modules live. Expo auto-discovers them. Changes here need a full native rebuild.
+- Hot reload (Metro) only applies to JS/TS changes. Native code changes (Kotlin/Swift) need `expo run:android` or `expo run:ios`.
