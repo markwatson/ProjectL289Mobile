@@ -21,6 +21,8 @@ import {
   type TransmitterState,
 } from '@/src/transmitter';
 
+import { transmitViaTorch } from '@/src/nativeTorchTransmitter';
+
 // Try to load expo-torch module
 let ExpoTorch: { setStateAsync: (state: number) => Promise<void>; ON: number; OFF: number } | null = null;
 try {
@@ -42,6 +44,7 @@ export default function FlashScreen() {
   const [timingText, setTimingText] = useState('');
   const [showOverlay, setShowOverlay] = useState(false);
   const [torchError, setTorchError] = useState<string | null>(null);
+  const [torchOffsetMs, setTorchOffsetMs] = useState(0);
   const abortRef = useRef({ aborted: false });
 
   const torchAvailable = ExpoTorch != null;
@@ -162,61 +165,80 @@ export default function FlashScreen() {
     const estimatedDurationSec = ((bitstream.length * BIT_PERIOD_MS + PRE_TRANSMIT_OVERHEAD_MS) / 1000).toFixed(1);
     setStatusText(`Transmitting ${bitstream.length} bits (~${estimatedDurationSec}s)...`);
 
-    // Track last torch state to avoid redundant calls
-    let lastTorchState: boolean | null = null;
+    if (flashMode === 'torch') {
+      // === Native torch transmission ===
+      setTransmitterState('transmitting');
 
-    const timingLog = await transmit(bitstream, BIT_PERIOD_MS, {
-      onStateChange: (state) => {
-        setTransmitterState(state);
-        if (state === 'done') {
-          setProgressText('Transmission complete! Check your watch.');
-          if (flashMode === 'torch') torchOff();
-          setTimeout(() => cleanup(), 2000);
-        } else if (state === 'error') {
-          if (flashMode === 'torch') torchOff();
-          setTimeout(() => cleanup(), 1500);
-        }
-      },
-      onProgress: (bitIdx, total) => {
-        const pct = Math.round((bitIdx / total) * 100);
-        setProgressText(`${pct}% (${bitIdx}/${total} bits)`);
-      },
-      onColorChange: (color) => {
-        if (flashMode === 'screen') {
-          setFlashColor(color);
-        } else {
-          // Torch mode: white = on, black = off
-          const shouldBeOn = color === '#ffffff';
-          if (shouldBeOn !== lastTorchState) {
-            lastTorchState = shouldBeOn;
-            if (shouldBeOn) {
-              torchOn();
-            } else {
-              torchOff();
-            }
+      // Wake-up pulse via expo-torch (coarse timing is fine for wake-up)
+      try {
+        await ExpoTorch?.setStateAsync(ExpoTorch.ON);
+        await new Promise(resolve => setTimeout(resolve, 200));
+        await ExpoTorch?.setStateAsync(ExpoTorch.OFF);
+        await new Promise(resolve => setTimeout(resolve, 50));
+      } catch (e) {
+        setTransmitterState('error');
+        setStatusText(`Torch error: ${e}`);
+        cleanup();
+        appStateSub.remove();
+        return;
+      }
+
+      // Native high-precision payload transmission
+      try {
+        const result = await transmitViaTorch(bitstream, BIT_PERIOD_MS, torchOffsetMs);
+        setTransmitterState('done');
+        setProgressText('Transmission complete! Check your watch.');
+        setTimingText(
+          `Timing: mean=${result.meanPeriodMs.toFixed(1)}ms, ` +
+          `stddev=${result.stdDevMs.toFixed(1)}ms, ` +
+          `min=${result.minPeriodMs.toFixed(1)}ms, ` +
+          `max=${result.maxPeriodMs.toFixed(1)}ms`
+        );
+        setTimeout(() => cleanup(), 2000);
+      } catch (e) {
+        setTransmitterState('error');
+        setStatusText(`Error: ${e}`);
+        cleanup();
+      }
+    } else {
+      // === Screen flash transmission (unchanged) ===
+      const timingLog = await transmit(bitstream, BIT_PERIOD_MS, {
+        onStateChange: (state) => {
+          setTransmitterState(state);
+          if (state === 'done') {
+            setProgressText('Transmission complete! Check your watch.');
+            setTimeout(() => cleanup(), 2000);
+          } else if (state === 'error') {
+            setTimeout(() => cleanup(), 1500);
           }
-        }
-      },
-      onComplete: () => {},
-      onError: (msg) => {
-        setStatusText(`Error: ${msg}`);
-        if (flashMode === 'torch') torchOff();
-      },
-    }, abortRef.current);
+        },
+        onProgress: (bitIdx, total) => {
+          const pct = Math.round((bitIdx / total) * 100);
+          setProgressText(`${pct}% (${bitIdx}/${total} bits)`);
+        },
+        onColorChange: (color) => {
+          setFlashColor(color);
+        },
+        onComplete: () => {},
+        onError: (msg) => {
+          setStatusText(`Error: ${msg}`);
+        },
+      }, abortRef.current);
 
-    // Show timing analysis
-    if (timingLog.length > 1) {
-      const stats = analyzeTimingLog(timingLog);
-      setTimingText(
-        `Timing: mean=${stats.meanPeriodMs.toFixed(1)}ms, ` +
-        `stddev=${stats.stdDevMs.toFixed(1)}ms, ` +
-        `min=${stats.minPeriodMs.toFixed(1)}ms, ` +
-        `max=${stats.maxPeriodMs.toFixed(1)}ms`
-      );
+      // Show timing analysis
+      if (timingLog.length > 1) {
+        const stats = analyzeTimingLog(timingLog);
+        setTimingText(
+          `Timing: mean=${stats.meanPeriodMs.toFixed(1)}ms, ` +
+          `stddev=${stats.stdDevMs.toFixed(1)}ms, ` +
+          `min=${stats.minPeriodMs.toFixed(1)}ms, ` +
+          `max=${stats.maxPeriodMs.toFixed(1)}ms`
+        );
+      }
     }
 
     appStateSub.remove();
-  }, [transmitterState, targetTimezone, flashMode, getSelectedTz, torchOn, torchOff]);
+  }, [transmitterState, targetTimezone, flashMode, torchOffsetMs, getSelectedTz, torchOn, torchOff]);
 
   const cleanup = useCallback(() => {
     setShowOverlay(false);
@@ -285,6 +307,25 @@ export default function FlashScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {flashMode === 'torch' && (
+        <>
+          <Text style={styles.label}>LED Offset ({torchOffsetMs}ms)</Text>
+          <View style={styles.offsetRow}>
+            {[0, 2, 5, 8, 10, 13, 15].map(v => (
+              <TouchableOpacity
+                key={v}
+                style={[styles.offsetButton, torchOffsetMs === v && styles.offsetButtonActive]}
+                onPress={() => setTorchOffsetMs(v)}
+              >
+                <Text style={[styles.offsetButtonText, torchOffsetMs === v && styles.offsetButtonTextActive]}>
+                  {v}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </>
+      )}
 
       <Text style={styles.label}>Timezone</Text>
       <View style={styles.pickerContainer}>
@@ -534,5 +575,32 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#ff6b6b',
     textAlign: 'center',
+  },
+  offsetRow: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  offsetButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#333',
+    backgroundColor: '#16213e',
+    minWidth: 38,
+    alignItems: 'center',
+  },
+  offsetButtonActive: {
+    borderColor: '#0a7ea4',
+    backgroundColor: '#0a3d5c',
+  },
+  offsetButtonText: {
+    color: '#888',
+    fontSize: 13,
+  },
+  offsetButtonTextActive: {
+    color: '#fff',
+    fontWeight: '600',
   },
 });

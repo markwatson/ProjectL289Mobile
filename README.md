@@ -1,50 +1,56 @@
-# Welcome to your Expo app 👋
+# ProjectL289Mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Mobile companion app for [Project L289](../ProjectL289/) — sets Longines VHP GMT (L289.2 movement) watches via the Watch Optical Protocol (WOP).
 
-## Get started
+## Status
 
-1. Install dependencies
+**Torch mode: Working on Pixel (Android).** Screen flash mode not yet functional.
 
-   ```bash
-   npm install
-   ```
+### What works
+- Native torch transmission using `CameraManager.setTorchMode()` on a max-priority busy-wait thread
+- Asymmetric LED offset compensation (configurable 0-15ms) for device-specific rise-time latency
+- Full WOP frame encoding: header, timezone, time, date, DST events, CRC-8, bit stuffing
+- Time pre-compensation so the final bit lands on a UTC second boundary
 
-2. Start the app
+### Progress log
+- **2026-03-08:** First successful watch sync via native torch transmitter on Pixel. The key was replacing `requestAnimationFrame`-based torch toggling (JS layer, ~16ms granularity) with a native Kotlin module that busy-waits with `System.nanoTime()` for precise 30ms bit timing. Offset=0ms worked on Pixel — modern Android phones may have fast enough LED response that no compensation is needed.
+- Screen flash mode transmits but the watch doesn't acknowledge — likely a brightness/contrast issue. Needs lab measurement to diagnose.
 
-   ```bash
-   npx expo start
-   ```
+### Next steps
+- Experiment with timing parameters across different Android devices
+- Lab work: measure torch and screen flash signals with photodiode to characterize LED rise-time and screen brightness
+- Investigate screen flash mode failure (brightness? timing? contrast ratio?)
+- Build full UI once more transmission scenarios are validated
+- iOS support
 
-In the output, you'll find options to open the app in a
+## Architecture
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- **React Native / Expo** — cross-platform UI, timezone picker, transmission controls
+- **Native Kotlin module** (`modules/native-torch-transmitter/`) — precision torch transmission on Android
+- **JS transmitter** (`src/transmitter.ts`) — screen flash mode using `requestAnimationFrame`
+- **Protocol encoder** (`src/encoder.ts`) — WOP frame assembly, CRC-8, bit stuffing
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+The native module is the critical piece for torch mode. It spawns a max-priority thread that:
+1. Finds the back camera with flash via Camera2 API
+2. Busy-waits with `System.nanoTime()` for each 30ms bit period
+3. Applies asymmetric offset compensation (shortens 0-bits before rising edges, extends 1-bits after) matching the original Longines app's approach
 
-## Get a fresh project
+## Development
 
-When you're ready, run:
+### Prerequisites
+- Node.js / Bun
+- Android Studio (for native builds)
 
+### Setup
 ```bash
-npm run reset-project
+bun install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### Commands
+```bash
+npx expo run:android   # Build and run on Android device/emulator
+npx expo run:ios       # Build and run on iOS (torch module is Android-only for now)
+npx expo start         # Start Metro dev server
+```
 
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Note: Changes to the native module (`modules/native-torch-transmitter/`) require a full native rebuild (`expo run:android`), not just a hot reload.
