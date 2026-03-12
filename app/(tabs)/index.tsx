@@ -380,17 +380,17 @@ export default function FlashScreen() {
           <>
             <Text style={styles.instructionStep}>1. Set screen brightness to maximum and dim room lights</Text>
             <Text style={styles.instructionStep}>2. Select your timezone and target (Home/Travel)</Text>
-            <Text style={styles.instructionStep}>3. Push the crown briefly, then hold for ~2 seconds until all hands jump to 12 o'clock</Text>
-            <Text style={styles.instructionStep}>4. Place the watch face-down on the screen with the photodetector centered on the flash area</Text>
-            <Text style={styles.instructionStep}>5. Press "Flash" and keep the watch still until complete</Text>
+            <Text style={styles.instructionStep}>{"3. Push the crown briefly, then hold for ~2 seconds until all hands jump to 12 o'clock"}</Text>
+            <Text style={styles.instructionStep}>{"4. Place the watch face-down on the screen with the photodetector centered on the flash area"}</Text>
+            <Text style={styles.instructionStep}>{"5. Press \"Flash\" and keep the watch still until complete"}</Text>
             <Text style={styles.instructionStep}>6. The hands will briefly jump to acknowledge reception</Text>
           </>
         ) : (
           <>
             <Text style={styles.instructionStep}>1. Select your timezone and target (Home/Travel)</Text>
-            <Text style={styles.instructionStep}>2. Push the crown briefly, then hold for ~2 seconds until all hands jump to 12 o'clock</Text>
-            <Text style={styles.instructionStep}>3. Position the phone's LED flash directly over the watch's photodetector (small window near 12 o'clock)</Text>
-            <Text style={styles.instructionStep}>4. Press "Flash" and hold the phone steady until complete</Text>
+            <Text style={styles.instructionStep}>{"2. Push the crown briefly, then hold for ~2 seconds until all hands jump to 12 o'clock"}</Text>
+            <Text style={styles.instructionStep}>{"3. Position the phone's LED flash directly over the watch's photodetector (small window near 12 o'clock)"}</Text>
+            <Text style={styles.instructionStep}>{"4. Press \"Flash\" and hold the phone steady until complete"}</Text>
             <Text style={styles.instructionStep}>5. The hands will briefly jump to acknowledge reception</Text>
           </>
         )}
