@@ -18,10 +18,10 @@ Mobile companion app for [Project L289](../ProjectL289/) — sets Longines VHP G
 
 ### Next steps
 - Experiment with timing parameters across different Android devices
-- Lab work: measure torch and screen flash signals with photodiode to characterize LED rise-time and screen brightness
+- Lab work: measure torch and screen flash signals with photodiode to characterize LED rise-time and screen brightness — see [Lab Test Rig Guide](docs/lab-test-rig.md)
 - Investigate screen flash mode failure (brightness? timing? contrast ratio?)
 - Build full UI once more transmission scenarios are validated
-- iOS support
+- ~~iOS support~~ ✓ (implemented, not yet lab-tested)
 
 ## Architecture
 
