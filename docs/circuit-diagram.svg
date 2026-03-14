@@ -1,0 +1,251 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 620" font-family="monospace" font-size="12">
+  <style>
+    .wire { stroke: #222; stroke-width: 2; fill: none; }
+    .component { stroke: #222; stroke-width: 1.5; fill: none; }
+    .label { font-size: 11px; fill: #333; }
+    .value { font-size: 10px; fill: #666; }
+    .pin { font-size: 9px; fill: #888; }
+    .title { font-size: 16px; font-weight: bold; fill: #111; }
+    .subtitle { font-size: 11px; fill: #555; }
+    .node { fill: #222; }
+    .ic-body { fill: #f5f5e8; stroke: #222; stroke-width: 1.5; }
+    .ic-label { font-size: 13px; font-weight: bold; fill: #222; }
+    .output-label { font-size: 12px; font-weight: bold; fill: #c00; }
+    .pwr-label { font-size: 11px; font-weight: bold; fill: #c00; }
+    .gnd-label { font-size: 11px; font-weight: bold; fill: #006; }
+    .note { font-size: 10px; fill: #555; font-style: italic; }
+  </style>
+
+  <!-- Title -->
+  <text x="450" y="30" text-anchor="middle" class="title">WOP Optical Pulse Test Rig — Circuit Diagram</text>
+  <text x="450" y="48" text-anchor="middle" class="subtitle">BPW34 photodiode + LM393 comparator → oscilloscope / Saleae logic analyzer</text>
+
+  <!-- ================= POWER RAILS ================= -->
+  <!-- +5V rail (top) -->
+  <line x1="60" y1="80" x2="820" y2="80" class="wire" stroke-dasharray="8,3" stroke="#c00" stroke-width="1"/>
+  <text x="55" y="84" class="pwr-label" text-anchor="end">+5V</text>
+
+  <!-- GND rail (bottom) -->
+  <line x1="60" y1="560" x2="820" y2="560" class="wire" stroke-dasharray="8,3" stroke="#006" stroke-width="1"/>
+  <text x="55" y="564" class="gnd-label" text-anchor="end">GND</text>
+
+  <!-- ================= BPW34 PHOTODIODE ================= -->
+  <!-- Vertical wire from +5V down to cathode -->
+  <line x1="160" y1="80" x2="160" y2="160" class="wire"/>
+  <circle cx="160" cy="80" r="3" class="node"/>
+
+  <!-- Photodiode symbol -->
+  <g transform="translate(160, 200)">
+    <!-- Triangle (anode at bottom) -->
+    <polygon points="-15,-20 15,-20 0,15" class="component"/>
+    <!-- Bar at cathode (top) -->
+    <line x1="-15" y1="-20" x2="15" y2="-20" class="component" stroke-width="2.5"/>
+    <!-- Arrows indicating light input -->
+    <line x1="-32" y1="-18" x2="-20" y2="-6" class="component" stroke="#888" stroke-width="1"/>
+    <polygon points="-20,-6 -24,-14 -16,-10" fill="#888"/>
+    <line x1="-38" y1="-8" x2="-26" y2="4" class="component" stroke="#888" stroke-width="1"/>
+    <polygon points="-26,4 -30,-4 -22,0" fill="#888"/>
+    <!-- Connecting wires -->
+    <line x1="0" y1="-20" x2="0" y2="-40" class="wire"/>
+    <line x1="0" y1="15" x2="0" y2="35" class="wire"/>
+  </g>
+  <text x="190" y="195" class="label">BPW34</text>
+  <text x="190" y="207" class="value">Photodiode</text>
+  <text x="120" y="178" class="pin">Cathode (band)</text>
+  <text x="120" y="240" class="pin">Anode</text>
+  <text x="80" y="195" class="note">light</text>
+
+  <!-- Junction node at anode -->
+  <circle cx="160" cy="235" r="3" class="node"/>
+
+  <!-- Wire from anode junction right to LM393 IN+ -->
+  <line x1="160" y1="235" x2="360" y2="235" class="wire"/>
+  <text x="260" y="228" class="label" text-anchor="middle">Photodiode signal</text>
+
+  <!-- ================= 10kΩ LOAD RESISTOR ================= -->
+  <!-- Vertical from anode junction down to GND -->
+  <line x1="160" y1="235" x2="160" y2="300" class="wire"/>
+
+  <!-- Resistor symbol (zigzag) -->
+  <g transform="translate(160, 300)">
+    <polyline points="0,0 -8,8 8,24 -8,40 8,56 -8,72 8,88 0,96" class="component"/>
+  </g>
+  <text x="178" y="350" class="label">10kΩ</text>
+  <text x="178" y="362" class="value">(load R)</text>
+
+  <!-- Wire from resistor to GND -->
+  <line x1="160" y1="396" x2="160" y2="560" class="wire"/>
+  <circle cx="160" cy="560" r="3" class="node"/>
+
+  <!-- ================= LM393 COMPARATOR ================= -->
+  <g transform="translate(400, 180)">
+    <!-- IC body -->
+    <rect x="0" y="0" width="120" height="160" rx="4" class="ic-body"/>
+    <!-- Notch -->
+    <path d="M 50,0 A 10,10 0 0,0 70,0" class="component" fill="white"/>
+
+    <text x="60" y="65" text-anchor="middle" class="ic-label">LM393N</text>
+    <text x="60" y="82" text-anchor="middle" class="value">Dual Comparator</text>
+
+    <!-- Pin labels (left side) -->
+    <text x="-5" y="40" text-anchor="end" class="pin">3 IN+ (non-inv)</text>
+    <text x="-5" y="105" text-anchor="end" class="pin">2 IN− (inv)</text>
+
+    <!-- Pin labels (right side) -->
+    <text x="125" y="40" text-anchor="start" class="pin">8 V+</text>
+    <text x="125" y="72" text-anchor="start" class="pin">1 OUT A</text>
+    <text x="125" y="105" text-anchor="start" class="pin">4 GND</text>
+    <text x="125" y="135" text-anchor="start" class="pin">5,6,7 (tied)</text>
+
+    <!-- Op-amp triangle inside -->
+    <polygon points="30,30 30,120 95,75" fill="none" stroke="#bbb" stroke-width="1"/>
+    <text x="36" y="50" font-size="14" fill="#bbb">+</text>
+    <text x="36" y="112" font-size="14" fill="#bbb">−</text>
+
+    <!-- Pin connection points -->
+    <!-- Pin 3 IN+ -->
+    <line x1="-20" y1="35" x2="0" y2="35" class="wire"/>
+    <!-- Pin 2 IN- -->
+    <line x1="-20" y1="100" x2="0" y2="100" class="wire"/>
+    <!-- Pin 8 V+ -->
+    <line x1="120" y1="35" x2="140" y2="35" class="wire"/>
+    <!-- Pin 1 OUT -->
+    <line x1="120" y1="67" x2="140" y2="67" class="wire"/>
+    <!-- Pin 4 GND -->
+    <line x1="120" y1="100" x2="140" y2="100" class="wire"/>
+  </g>
+
+  <!-- Wire from photodiode signal to pin 3 (IN+) -->
+  <!-- Already drawn: line to x=360 at y=235 -->
+  <line x1="360" y1="235" x2="380" y2="215" class="wire"/>
+
+  <!-- ================= +5V to pin 8 ================= -->
+  <line x1="540" y1="215" x2="600" y2="215" class="wire"/>
+  <line x1="600" y1="80" x2="600" y2="215" class="wire"/>
+  <circle cx="600" cy="80" r="3" class="node"/>
+
+  <!-- ================= Pin 4 GND ================= -->
+  <line x1="540" y1="280" x2="600" y2="280" class="wire"/>
+  <line x1="600" y1="280" x2="600" y2="340" class="wire"/>
+  <!-- Drop to GND (separate path to avoid crossing output) -->
+  <line x1="600" y1="340" x2="640" y2="340" class="wire"/>
+  <line x1="640" y1="340" x2="640" y2="560" class="wire"/>
+  <circle cx="640" cy="560" r="3" class="node"/>
+
+  <!-- ================= Unused pins 5,6,7 ================= -->
+  <text x="545" y="325" class="note">Pin 5 (IN+ B) → GND</text>
+  <text x="545" y="337" class="note">Pin 6 (IN− B) → +5V</text>
+  <text x="545" y="349" class="note">Pin 7 (OUT B) → float</text>
+
+  <!-- ================= OUTPUT (Pin 1) ================= -->
+  <line x1="540" y1="247" x2="560" y2="247" class="wire"/>
+  <circle cx="560" cy="247" r="3" class="node"/>
+
+  <!-- 100kΩ pull-up from output to +5V -->
+  <line x1="560" y1="247" x2="560" y2="190" class="wire"/>
+  <g transform="translate(560, 100)">
+    <polyline points="0,0 -8,8 8,24 -8,40 8,56 -8,72 8,88 0,90" class="component"/>
+  </g>
+  <line x1="560" y1="80" x2="560" y2="100" class="wire"/>
+  <circle cx="560" cy="80" r="3" class="node"/>
+  <text x="575" y="145" class="label">100kΩ</text>
+  <text x="575" y="157" class="value">(pull-up)</text>
+
+  <!-- Output wire going right to probe point -->
+  <line x1="560" y1="247" x2="760" y2="247" class="wire" stroke="#c00" stroke-width="2.5"/>
+
+  <!-- Probe point -->
+  <circle cx="760" cy="247" r="6" fill="none" stroke="#c00" stroke-width="2"/>
+  <circle cx="760" cy="247" r="2" fill="#c00"/>
+
+  <text x="775" y="240" class="output-label">OUT</text>
+  <text x="775" y="254" class="label">→ Scope CH1</text>
+  <text x="775" y="266" class="label">→ Saleae CH0</text>
+
+  <!-- Optional analog probe point at photodiode junction -->
+  <circle cx="260" cy="235" r="6" fill="none" stroke="#c60" stroke-width="2"/>
+  <circle cx="260" cy="235" r="2" fill="#c60"/>
+  <text x="235" y="262" class="value" fill="#c60">Optional: Scope CH2</text>
+  <text x="235" y="274" class="value" fill="#c60">(analog signal)</text>
+
+  <!-- ================= 10K THRESHOLD POT ================= -->
+  <g transform="translate(300, 370)">
+    <!-- Pot body -->
+    <rect x="-20" y="-15" width="40" height="70" rx="4" fill="#f5f0e0" stroke="#222" stroke-width="1.5"/>
+    <!-- Arrow (wiper) -->
+    <line x1="25" y1="20" x2="40" y2="20" class="wire"/>
+    <polygon points="25,20 32,16 32,24" fill="#222"/>
+    <text x="10" y="8" text-anchor="middle" class="value">10K</text>
+    <text x="10" y="22" text-anchor="middle" class="value">POT</text>
+    <text x="10" y="48" text-anchor="middle" class="note">threshold</text>
+    <!-- Top terminal to +5V -->
+    <line x1="0" y1="-15" x2="0" y2="-50" class="wire"/>
+    <!-- Bottom terminal to GND -->
+    <line x1="0" y1="55" x2="0" y2="100" class="wire"/>
+  </g>
+
+  <!-- Pot top terminal to +5V -->
+  <line x1="300" y1="320" x2="300" y2="80" class="wire"/>
+  <circle cx="300" cy="80" r="3" class="node"/>
+
+  <!-- Pot bottom terminal to GND -->
+  <line x1="300" y1="470" x2="300" y2="560" class="wire"/>
+  <circle cx="300" cy="560" r="3" class="node"/>
+
+  <!-- Pot wiper to LM393 pin 2 (IN-) -->
+  <line x1="340" y1="390" x2="355" y2="390" class="wire"/>
+  <line x1="355" y1="390" x2="355" y2="280" class="wire"/>
+  <line x1="355" y1="280" x2="380" y2="280" class="wire"/>
+
+  <!-- ================= DECOUPLING CAPS ================= -->
+  <!-- 100nF cap near IC -->
+  <g transform="translate(680, 110)">
+    <line x1="0" y1="0" x2="0" y2="18" class="wire"/>
+    <line x1="-10" y1="18" x2="10" y2="18" class="component" stroke-width="2"/>
+    <line x1="-10" y1="24" x2="10" y2="24" class="component" stroke-width="2"/>
+    <line x1="0" y1="24" x2="0" y2="42" class="wire"/>
+  </g>
+  <line x1="680" y1="80" x2="680" y2="110" class="wire"/>
+  <circle cx="680" cy="80" r="3" class="node"/>
+  <line x1="680" y1="152" x2="680" y2="560" class="wire"/>
+  <circle cx="680" cy="560" r="3" class="node"/>
+  <text x="695" y="135" class="value">100nF</text>
+
+  <!-- 1µF bulk cap -->
+  <g transform="translate(740, 110)">
+    <line x1="0" y1="0" x2="0" y2="18" class="wire"/>
+    <line x1="-10" y1="18" x2="10" y2="18" class="component" stroke-width="2"/>
+    <line x1="-10" y1="24" x2="10" y2="24" class="component" stroke-width="2"/>
+    <line x1="0" y1="24" x2="0" y2="42" class="wire"/>
+  </g>
+  <line x1="740" y1="80" x2="740" y2="110" class="wire"/>
+  <circle cx="740" cy="80" r="3" class="node"/>
+  <line x1="740" y1="152" x2="740" y2="560" class="wire"/>
+  <circle cx="740" cy="560" r="3" class="node"/>
+  <text x="755" y="135" class="value">1µF</text>
+  <text x="700" y="170" class="note">decoupling</text>
+  <text x="700" y="182" class="note">(close to IC)</text>
+
+  <!-- ================= POWER SUPPLY ================= -->
+  <g transform="translate(60, 480)">
+    <rect x="0" y="0" width="70" height="45" rx="4" fill="#efe" stroke="#222" stroke-width="1.5"/>
+    <text x="35" y="18" text-anchor="middle" class="label">5V</text>
+    <text x="35" y="32" text-anchor="middle" class="value">Supply</text>
+    <!-- +5V terminal -->
+    <line x1="35" y1="0" x2="35" y2="-20" class="wire"/>
+    <text x="45" y="-8" class="pwr-label">+</text>
+    <!-- GND terminal -->
+    <line x1="35" y1="45" x2="35" y2="65" class="wire"/>
+    <text x="45" y="58" class="gnd-label">−</text>
+  </g>
+  <line x1="95" y1="460" x2="95" y2="80" class="wire"/>
+  <circle cx="95" cy="80" r="3" class="node"/>
+  <line x1="95" y1="545" x2="95" y2="560" class="wire"/>
+  <circle cx="95" cy="560" r="3" class="node"/>
+
+  <!-- ================= NOTES ================= -->
+  <g transform="translate(60, 590)">
+    <text x="0" y="0" class="note">Notes: • Comparator output is inverted (LED ON = OUT LOW)  • Adjust 10K pot for clean triggering  • Shield BPW34 from ambient light</text>
+    <text x="0" y="14" class="note">• If signal saturates: decrease load R to 4.7kΩ  • If signal is weak (screen flash): increase load R to 47kΩ–100kΩ</text>
+  </g>
+</svg>

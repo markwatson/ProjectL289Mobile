@@ -29,6 +29,10 @@ The watch's photodetector sees light pulses at a 30ms bit period. We need to cap
 
 ## Circuit
 
+![Circuit Diagram](circuit-diagram.svg)
+
+### ASCII reference
+
 ```
                          +5V
                           │
