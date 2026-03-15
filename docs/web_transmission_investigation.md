@@ -1,7 +1,7 @@
 # Web-Based WOP Transmission Investigation
 
 **Date:** March 14-15, 2026
-**Hardware:** Longines VHP GMT (L289.2), iPhone 17 Pro, Saleae Logic Analyzer
+**Hardware:** L289.2 movement watch, iPhone 17 Pro, Saleae Logic Analyzer
 **Goal:** Determine if a web browser can transmit the Watch Optical Protocol (WOP) to sync the watch, without a native app.
 
 ---

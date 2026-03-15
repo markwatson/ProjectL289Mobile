@@ -51,7 +51,7 @@ class NativeTorchTransmitterModule : Module() {
       val thread = Thread {
         val periods = mutableListOf<Long>()
         try {
-          // Asymmetric offset compensation, matching the original Longines Encoder.encode():
+          // Asymmetric offset compensation, matching the original manufacturer's app:
           //
           // The offset shortens 0-bits immediately before a rising edge (0→1 transition)
           // and lengthens 1-bits immediately after a rising edge.

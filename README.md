@@ -1,16 +1,19 @@
 # ProjectL289Mobile
 
-Mobile companion app for [Project L289](../ProjectL289/) — sets Longines VHP GMT (L289.2 movement) watches via the Watch Optical Protocol (WOP).
+Mobile app for setting L289.2 movement watches via the [Watch Optical Protocol (WOP)](docs/spec.md).
+
+The L289.2 movement is found in high-precision quartz GMT watches. As official apps are removed from app stores or drop support for older OS versions, this project ensures owners can continue to sync their watches — a right-to-repair tool.
 
 ## Status
 
-**Torch mode: Working on Pixel (Android).** Screen flash mode not yet functional.
+**Torch mode: Working on Android (tested on Pixel).** Screen flash mode not yet functional.
 
 ### What works
 - Native torch transmission using `CameraManager.setTorchMode()` on a max-priority busy-wait thread
 - Asymmetric LED offset compensation (configurable 0-15ms) for device-specific rise-time latency
 - Full WOP frame encoding: header, timezone, time, date, DST events, CRC-8, bit stuffing
 - Time pre-compensation so the final bit lands on a UTC second boundary
+- CI/CD with GitHub Actions: lint, build, and release APK/IPA on tag push
 
 ### Progress log
 - **2026-03-08:** First successful watch sync via native torch transmitter on Pixel. The key was replacing `requestAnimationFrame`-based torch toggling (JS layer, ~16ms granularity) with a native Kotlin module that busy-waits with `System.nanoTime()` for precise 30ms bit timing. Offset=0ms worked on Pixel — modern Android phones may have fast enough LED response that no compensation is needed.
@@ -21,7 +24,7 @@ Mobile companion app for [Project L289](../ProjectL289/) — sets Longines VHP G
 - Lab work: measure torch and screen flash signals with photodiode to characterize LED rise-time and screen brightness — see [Lab Test Rig Guide](docs/lab-test-rig.md)
 - Investigate screen flash mode failure (brightness? timing? contrast ratio?)
 - Build full UI once more transmission scenarios are validated
-- ~~iOS support~~ ✓ (implemented, not yet lab-tested)
+- ~~iOS support~~ (implemented, not yet lab-tested)
 
 ## Architecture
 
@@ -33,7 +36,14 @@ Mobile companion app for [Project L289](../ProjectL289/) — sets Longines VHP G
 The native module is the critical piece for torch mode. It spawns a max-priority thread that:
 1. Finds the back camera with flash via Camera2 API
 2. Busy-waits with `System.nanoTime()` for each 30ms bit period
-3. Applies asymmetric offset compensation (shortens 0-bits before rising edges, extends 1-bits after) matching the original Longines app's approach
+3. Applies asymmetric offset compensation (shortens 0-bits before rising edges, extends 1-bits after) to match LED rise-time characteristics
+
+## Documentation
+
+- **[WOP Protocol Specification](docs/spec.md)** — full protocol spec (framing, opcodes, CRC, DST rules, etc.)
+- **[Web Transmission Investigation](docs/web_transmission_investigation.md)** — why web APIs can't reliably transmit WOP
+- **[Lab Test Rig](docs/lab-test-rig.md)** — photodiode circuit for measuring and comparing optical signals
+- **[Signal Captures](docs/exports/)** — raw Saleae Logic captures from official and experimental transmissions
 
 ## Development
 
@@ -43,7 +53,7 @@ The native module is the critical piece for torch mode. It spawns a max-priority
 
 ### Setup
 ```bash
-bun install
+npm install   # or: bun install
 ```
 
 ### Commands
@@ -51,6 +61,7 @@ bun install
 npx expo run:android   # Build and run on Android device/emulator
 npx expo run:ios       # Build and run on iOS (torch module is Android-only for now)
 npx expo start         # Start Metro dev server
+npm run lint           # Run ESLint
 ```
 
 Note: Changes to the native module (`modules/native-torch-transmitter/`) require a full native rebuild (`expo run:android`), not just a hot reload.
@@ -62,7 +73,6 @@ ProjectL289Mobile/
 ├── app/                          # Screens & navigation (Expo Router, file-based routing)
 │   ├── (tabs)/
 │   │   ├── index.tsx             # Main flash screen — timezone picker, offset selector, transmission UI
-│   │   ├── explore.tsx           # Documentation / info screen
 │   │   └── _layout.tsx           # Tab bar layout
 │   ├── _layout.tsx               # Root layout (wraps everything)
 │   └── modal.tsx                 # Modal screen
@@ -83,20 +93,20 @@ ProjectL289Mobile/
 │           ├── build.gradle                  # Android library build config
 │           ├── src/main/AndroidManifest.xml
 │           └── src/main/java/expo/modules/nativetorchtransmitter/
-│               └── NativeTorchTransmitterModule.kt  # THE KEY FILE — Kotlin torch transmitter
+│               └── NativeTorchTransmitterModule.kt  # Kotlin torch transmitter
 │
-├── android/                      # Generated Android project (managed by Expo prebuild)
-│   └── app/src/main/java/com/anonymous/ProjectL289Mobile/
-│       ├── MainActivity.kt       # Android entry point (mostly boilerplate)
-│       └── MainApplication.kt    # App initialization (mostly boilerplate)
-│
-├── ios/                          # Generated iOS project (managed by Expo prebuild)
+├── docs/                         # Documentation and lab data
+│   ├── spec.md                   # WOP protocol specification
+│   ├── lab-test-rig.md           # Photodiode measurement circuit guide
+│   ├── web_transmission_investigation.md  # Web platform limitations analysis
+│   ├── circuit-diagram.svg       # Lab rig schematic
+│   ├── analyze_captures.py       # Python tool for signal analysis
+│   └── exports/                  # Saleae Logic capture CSVs
 │
 ├── components/                   # Reusable React Native UI components
 ├── constants/                    # Theme colors, etc.
 ├── hooks/                        # React hooks
 ├── assets/                       # Images, fonts, icons
-├── docs/plans/                   # Design docs and implementation plans
 │
 ├── app.json                      # Expo config (app name, plugins, permissions, build settings)
 ├── package.json                  # Dependencies and scripts
@@ -108,3 +118,20 @@ ProjectL289Mobile/
 - `src/` is your code, `android/` and `ios/` are generated scaffolding — edit them rarely.
 - `modules/` is where local native modules live. Expo auto-discovers them. Changes here need a full native rebuild.
 - Hot reload (Metro) only applies to JS/TS changes. Native code changes (Kotlin/Swift) need `expo run:android` or `expo run:ios`.
+
+## Credits & History
+
+Special thanks to **DaveM** from the WatchUSeek forums for his foundational [reverse engineering work](https://www.watchuseek.com/threads/longines-vhp-gmt-with-flash-setting.5296584/) and signal captures, which made the initial protocol mapping possible.
+
+## Disclaimers
+
+### Legal Notice
+This project is an independent effort created for the purposes of interoperability, preservation, and right-to-repair. It is not affiliated with, authorized by, or endorsed by The Swatch Group, Longines, or any of their subsidiaries. All product names, trademarks, and registered trademarks are property of their respective owners.
+
+This implementation was developed as a clean-room style implementation of a functional communication protocol. No copyrighted code from proprietary applications is distributed in this repository.
+
+### Limitation of Liability
+**USE AT YOUR OWN RISK.** This software interacts with the internal firmware of high-precision electronic devices. The authors and contributors are not responsible for any damage to hardware, loss of data, or voiding of warranties that may occur through the use of this software.
+
+## License
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
