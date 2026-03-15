@@ -37,7 +37,7 @@ export default function FlashScreen() {
   const [progressText, setProgressText] = useState('');
   const [timingText, setTimingText] = useState('');
   const [showOverlay, setShowOverlay] = useState(false);
-  const [torchOffsetMs, setTorchOffsetMs] = useState(0);
+  const [torchOffsetMs, setTorchOffsetMs] = useState(8);
   const abortRef = useRef({ aborted: false });
 
   const getSelectedTz = useCallback((): TimezoneEntry | undefined => {
