@@ -5,6 +5,7 @@ node_modules/
 
 # build artifacts
 **/build/
+**/.build/
 
 # editor / tool config
 .claude/

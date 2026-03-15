@@ -6,6 +6,8 @@ Measure and compare the optical pulses from the official manufacturer's app agai
 
 The watch's photodetector sees light pulses at a 30ms bit period. We need to capture what the phone's LED flash (or screen) actually emits and compare it to known-good transmissions from the official app. A photodiode circuit converts light pulses into voltage transitions that an oscilloscope or Saleae logic analyzer can capture.
 
+Note to do this you kind of need a logic analyzer. It doesn't have to be a Saleae, but you may need to tweak the scripts if not. There are plenty of very cheap ones you can find on ebay / aliexpress / etc.
+
 ## Parts
 
 ### From Mouser order (invoice 89173259)

@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
+    "test": "jest",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
@@ -39,9 +40,11 @@
     "react-native-worklets": "0.5.1"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.14",
     "@types/react": "~19.1.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "jest": "^30.3.0",
     "typescript": "~5.9.2"
   },
   "private": true

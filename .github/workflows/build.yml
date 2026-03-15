@@ -22,6 +22,40 @@ jobs:
 
       - run: npx expo lint
 
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - run: npm ci
+
+      - name: Run JS tests
+        run: npm test
+
+      - name: Run Swift native module tests
+        working-directory: modules/native-torch-transmitter/swift-tests
+        run: swift test
+
+      - name: Generate Android project
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Run Kotlin native module tests
+        working-directory: android
+        run: ./gradlew :native-torch-transmitter:testDebugUnitTest
+
   build-android:
     name: Build Android
     runs-on: ubuntu-latest
