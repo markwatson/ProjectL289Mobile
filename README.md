@@ -6,7 +6,13 @@ The L289.2 movement is found in high-precision quartz GMT watches. As official a
 
 ## Status
 
-**Torch mode: Working on Android (tested on Pixel).** Screen flash mode not yet functional.
+**Working on Android (tested on Pixel).** and **iOS (tested on iPhone 17 Pro)**.
+
+A screen flash mode was attempted as well, which would allow the app to be hosted on any website, but the timing never worked right. Full [details here](https://github.com/markwatson/ProjectL289Mobile/blob/main/docs/web_transmission_investigation.md).
+
+Unfortunately I won't publish this to the app store just in case it would upset the folks that made the original watch. You can build from source, or sideload the app if you with though (on Android only). On iOS there is a native version of the app still, so I recommend you use that. Just make sure to align the watch with the LED on the back of your phone, not using the camera in the app.
+
+**NOTE:** This app was primarily "vibe-coded". I just didn't want to spend the time to hand write the code since I just needed it for one of my watches.
 
 ### What works
 - Native torch transmission using `CameraManager.setTorchMode()` on a max-priority busy-wait thread
@@ -16,21 +22,20 @@ The L289.2 movement is found in high-precision quartz GMT watches. As official a
 - CI/CD with GitHub Actions: lint, build, and release APK/IPA on tag push
 
 ### Progress log
+- **2026-03-15:** Wrapped up the iOS version, and cleaned up the app visuals. This now works on both platforms, and was tested against a real watch + analyzed at the lab. I probably won't work on this much more - it's good enough for me right now.
+
 - **2026-03-08:** First successful watch sync via native torch transmitter on Pixel. The key was replacing `requestAnimationFrame`-based torch toggling (JS layer, ~16ms granularity) with a native Kotlin module that busy-waits with `System.nanoTime()` for precise 30ms bit timing. Offset=0ms worked on Pixel — modern Android phones may have fast enough LED response that no compensation is needed.
 - Screen flash mode transmits but the watch doesn't acknowledge — likely a brightness/contrast issue. Needs lab measurement to diagnose.
 
 ### Next steps
-- Experiment with timing parameters across different Android devices
-- Lab work: measure torch and screen flash signals with photodiode to characterize LED rise-time and screen brightness — see [Lab Test Rig Guide](docs/lab-test-rig.md)
-- Investigate screen flash mode failure (brightness? timing? contrast ratio?)
-- Build full UI once more transmission scenarios are validated
-- ~~iOS support~~ (implemented, not yet lab-tested)
+- Experiment with timing parameters across different Android devices. (I only have one android phone at the moment)
+- Lab work: measure torch and screen flash signals with photodiode to characterize LED rise-time and screen brightness — see [Lab Test Rig Guide](docs/lab-test-rig.md). I already measured the devices I have access to.
 
 ## Architecture
 
 - **React Native / Expo** — cross-platform UI, timezone picker, transmission controls
 - **Native Kotlin module** (`modules/native-torch-transmitter/`) — precision torch transmission on Android
-- **JS transmitter** (`src/transmitter.ts`) — screen flash mode using `requestAnimationFrame`
+- **JS transmitter** (`src/transmitter.ts`) — screen flash mode using `requestAnimationFrame` - not used right now since it doesn't work.
 - **Protocol encoder** (`src/encoder.ts`) — WOP frame assembly, CRC-8, bit stuffing
 
 The native module is the critical piece for torch mode. It spawns a max-priority thread that:
