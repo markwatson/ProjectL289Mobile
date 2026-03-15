@@ -179,9 +179,9 @@ export function assembleFrame(params: TransmitParams): number[] {
   // Sub-message 1: TZ_TIME_DATE
   payload.push(...toBitArray(tzTimeDateOpcode, 8));
 
-  // If DST is active, shift is incremented by 1 per spec note
-  const effectiveShift = tz.dstActive ? tz.shiftHours + 1 : tz.shiftHours;
-  payload.push(...encodeTimezone(effectiveShift, tz.minuteShift, tz.hemisphere));
+  // Send the standard (base) offset — the watch applies DST itself using the
+  // DST transition events in the second sub-message.
+  payload.push(...encodeTimezone(tz.shiftHours, tz.minuteShift, tz.hemisphere));
   payload.push(...encodeTime(hour, minute, second));
   payload.push(...encodeDate(year, month, day));
 
