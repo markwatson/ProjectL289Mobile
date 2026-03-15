@@ -64,6 +64,11 @@ export default function FlashScreen() {
     return `${offsetStr} | ${dstStr} | ${tz.hemisphere === 0 ? 'Northern' : 'Southern'} hemisphere`;
   }, [getSelectedTz]);
 
+  const cleanup = useCallback(() => {
+    setShowOverlay(false);
+    setTransmitterState('idle');
+  }, []);
+
   const startFlash = useCallback(async () => {
     if (transmitterState === 'transmitting') return;
 
@@ -153,12 +158,7 @@ export default function FlashScreen() {
     }
 
     appStateSub.remove();
-  }, [transmitterState, targetTimezone, torchOffsetMs, getSelectedTz]);
-
-  const cleanup = useCallback(() => {
-    setShowOverlay(false);
-    setTransmitterState('idle');
-  }, []);
+  }, [transmitterState, targetTimezone, torchOffsetMs, getSelectedTz, cleanup]);
 
   const cancelFlash = useCallback(() => {
     abortRef.current.aborted = true;
@@ -235,11 +235,11 @@ export default function FlashScreen() {
         <Text style={styles.instructionStep}>{"3. Align the LED on the back of your phone with 12 o'clock on the watch (hold about 1 inch / 3cm above)"}</Text>
         <Text style={styles.instructionStep}>{"4. Press \"Flash\" and hold steady until complete"}</Text>
         <Text style={styles.instructionStep}>5. The hands will briefly jump to acknowledge reception</Text>
-        <Text style={styles.instructionStep}>6. If the watch doesn't respond, try adjusting the alignment or changing the LED timing offset below</Text>
+        <Text style={styles.instructionStep}>{"6. If the watch doesn't respond, try adjusting the alignment or changing the LED timing offset below"}</Text>
       </View>
 
       <Text style={styles.label}>LED Timing Offset ({torchOffsetMs}ms)</Text>
-      <Text style={styles.offsetHint}>Compensates for LED response time. Increase if transmissions aren't received.</Text>
+      <Text style={styles.offsetHint}>{"Compensates for LED response time. Increase if transmissions aren't received."}</Text>
       <View style={styles.offsetRow}>
         {[0, 2, 5, 8, 10, 13, 15].map(v => (
           <TouchableOpacity
