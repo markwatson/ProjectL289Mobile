@@ -1,10 +1,12 @@
 # Lab Test Rig: Optical Pulse Measurement
 
-Measure and compare the optical pulses from the official Longines VHP app against ProjectL289Mobile to validate WOP protocol timing.
+Measure and compare the optical pulses from the official manufacturer's app against ProjectL289Mobile to validate WOP protocol timing.
 
 ## Overview
 
 The watch's photodetector sees light pulses at a 30ms bit period. We need to capture what the phone's LED flash (or screen) actually emits and compare it to known-good transmissions from the official app. A photodiode circuit converts light pulses into voltage transitions that an oscilloscope or Saleae logic analyzer can capture.
+
+Note to do this you kind of need a logic analyzer. It doesn't have to be a Saleae, but you may need to tweak the scripts if not. There are plenty of very cheap ones you can find on ebay / aliexpress / etc.
 
 ## Parts
 
@@ -192,7 +194,7 @@ python docs/analyze_captures.py official_capture.csv project_capture.csv
 4. **Set the threshold pot** to midpoint. Turn on the phone flashlight steady. Adjust the pot until the comparator output just goes LOW. Back off slightly.
 5. **Capture the official app:**
    - Set scope to single-shot trigger or start Saleae capture.
-   - Run the official Longines VHP app and transmit.
+   - Run the official manufacturer's app and transmit.
    - Save the capture.
 6. **Capture ProjectL289Mobile:**
    - Same physical setup — don't move the photodiode.

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Project289",
+    "name": "ProjectL289",
     "slug": "ProjectL289Mobile",
     "version": "1.0.0",
     "jsEngine": "hermes",
@@ -25,7 +25,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.ProjectL289Mobile"
+      "package": "dev.markwatson.ProjectL289Mobile"
     },
     "web": {
       "output": "static",

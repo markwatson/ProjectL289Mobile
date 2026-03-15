@@ -51,26 +51,14 @@ class NativeTorchTransmitterModule : Module() {
       val thread = Thread {
         val periods = mutableListOf<Long>()
         try {
-          // Asymmetric offset compensation, matching the original Longines Encoder.encode():
-          //
-          // The offset shortens 0-bits immediately before a rising edge (0→1 transition)
-          // and lengthens 1-bits immediately after a rising edge.
-          //
-          // This compensates for LED rise-time latency: the "on" command is sent
-          // earlier (0-bit shortened) and held longer (1-bit extended) so the
-          // physical light output aligns with the intended bit boundaries.
+          // Pre-compute expected durations using the offset compensation algorithm
+          val expectedDurations = OffsetCompensation.computeBitDurations(bits, periodNs, offsetNs)
 
-          var nextDeadline = System.nanoTime() + periodNs
-          var offsetApplied = false
+          var nextDeadline = System.nanoTime() + expectedDurations[0]
 
           // Handle first bit
           if (bits.isNotEmpty()) {
             cameraManager.setTorchMode(camId, bits[0] == 1)
-            // If first bit is 1, it's a rising edge from implicit off state
-            if (bits[0] == 1) {
-              nextDeadline += offsetNs
-              offsetApplied = true
-            }
           }
 
           for (i in 1 until bits.size) {
@@ -80,27 +68,11 @@ class NativeTorchTransmitterModule : Module() {
             }
 
             val actualTime = System.nanoTime()
-            periods.add(actualTime - (nextDeadline - periodNs))
+            periods.add(actualTime - (nextDeadline - expectedDurations[i - 1]))
 
-            val currentBit = bits[i]
-            val prevBit = bits[i - 1]
-            val nextBit = if (i < bits.size - 1) bits[i + 1] else 0
+            cameraManager.setTorchMode(camId, bits[i] == 1)
 
-            cameraManager.setTorchMode(camId, currentBit == 1)
-
-            // Calculate next deadline with offset compensation
-            nextDeadline = actualTime + periodNs
-
-            offsetApplied = false
-            // Rising edge: prev=0, current=1 — extend this 1-bit
-            if (prevBit == 0 && currentBit == 1) {
-              nextDeadline += offsetNs
-              offsetApplied = true
-            }
-            // About to rise: current=0, next=1 — shorten this 0-bit
-            if (currentBit == 0 && nextBit == 1) {
-              nextDeadline -= offsetNs
-            }
+            nextDeadline = actualTime + expectedDurations[i]
           }
 
           // Wait for last bit to complete

@@ -3,6 +3,14 @@
 # dependencies
 node_modules/
 
+# build artifacts
+**/build/
+**/.build/
+
+# editor / tool config
+.claude/
+.vscode/
+
 # Expo
 .expo/
 dist/

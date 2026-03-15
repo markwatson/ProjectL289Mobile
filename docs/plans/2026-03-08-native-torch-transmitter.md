@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Replace the JS-based requestAnimationFrame torch transmission with a native Kotlin module that uses a max-priority busy-wait thread for precise 30ms bit timing, matching the original Longines app's approach.
+**Goal:** Replace the JS-based requestAnimationFrame torch transmission with a native Kotlin module that uses a max-priority busy-wait thread for precise 30ms bit timing, matching the original manufacturer's app's approach.
 
 **Architecture:** A local Expo module (`modules/native-torch-transmitter/`) provides a single async function `transmitBitstream(bitstream, bitPeriodMs, offsetMs)` that runs the entire torch transmission on a dedicated high-priority thread using `CameraManager.setTorchMode()` with `System.nanoTime()` busy-wait loops. The offset implements asymmetric timing compensation (shortening 0-bits before rising edges, lengthening 1-bits after rising edges) to compensate for LED rise-time latency. A thin JS wrapper (`src/nativeTorchTransmitter.ts`) imports the native module. The UI adds a torch offset slider visible only in torch mode.
 
@@ -178,7 +178,7 @@ class NativeTorchTransmitterModule : Module() {
       val thread = Thread {
         val periods = mutableListOf<Long>()
         try {
-          // Asymmetric offset compensation, matching the original Longines Encoder.encode():
+          // Asymmetric offset compensation, matching the official app's approach:
           //
           // The offset shortens 0-bits immediately before a rising edge (0→1 transition)
           // and lengthens 1-bits immediately after a rising edge.

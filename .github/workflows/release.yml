@@ -34,11 +34,14 @@ jobs:
         working-directory: android
         run: ./gradlew assembleRelease
 
+      - name: Rename APK
+        run: cp android/app/build/outputs/apk/release/app-release.apk ProjectL289_${GITHUB_REF_NAME}.apk
+
       - name: Upload Android artifact
         uses: actions/upload-artifact@v4
         with:
           name: android-release
-          path: android/app/build/outputs/apk/release/app-release.apk
+          path: ProjectL289_${{ github.ref_name }}.apk
 
   build-ios:
     name: Build iOS App
@@ -76,14 +79,14 @@ jobs:
         run: |
           mkdir -p Payload
           cp -r ios/build/ProjectL289Mobile.xcarchive/Products/Applications/ProjectL289Mobile.app Payload/
-          zip -r ProjectL289Mobile.ipa Payload/
+          zip -r ProjectL289_${GITHUB_REF_NAME}.ipa Payload/
           rm -rf Payload
 
       - name: Upload iOS artifact
         uses: actions/upload-artifact@v4
         with:
           name: ios-release
-          path: ProjectL289Mobile.ipa
+          path: ProjectL289_${{ github.ref_name }}.ipa
 
   release:
     name: Create GitHub Release
@@ -108,5 +111,5 @@ jobs:
         with:
           generate_release_notes: true
           files: |
-            app-release.apk
-            ProjectL289Mobile.ipa
+            ProjectL289_${{ github.ref_name }}.apk
+            ProjectL289_${{ github.ref_name }}.ipa

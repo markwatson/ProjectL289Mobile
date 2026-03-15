@@ -90,12 +90,16 @@ public class NativeTorchTransmitterModule: Module {
         while mach_absolute_time() < gapStart + wakeGapAbs { /* spin */ }
 
         // === Payload transmission ===
-        var nextDeadline = mach_absolute_time() + periodAbs
+        // Pre-compute expected durations using the offset compensation algorithm
+        let expectedDurations = OffsetCompensation.computeBitDurations(
+          bits: bits, periodNs: periodNs, offsetNs: offsetNs
+        ).map { nanosToAbs($0) }
+
+        var nextDeadline = mach_absolute_time() + expectedDurations[0]
 
         if !bits.isEmpty {
           if bits[0] == 1 {
             try torchOn()
-            nextDeadline += offsetAbs
           } else {
             torchOff()
           }
@@ -105,26 +109,15 @@ public class NativeTorchTransmitterModule: Module {
           while mach_absolute_time() < nextDeadline { /* spin */ }
 
           let actualTime = mach_absolute_time()
-          periods.append(absToNanos(actualTime - (nextDeadline - periodAbs)))
+          periods.append(absToNanos(actualTime - (nextDeadline - expectedDurations[i - 1])))
 
-          let currentBit = bits[i]
-          let prevBit = bits[i - 1]
-          let nextBit = (i < bits.count - 1) ? bits[i + 1] : 0
-
-          if currentBit == 1 {
+          if bits[i] == 1 {
             try torchOn()
           } else {
             torchOff()
           }
 
-          nextDeadline = actualTime + periodAbs
-
-          if prevBit == 0 && currentBit == 1 {
-            nextDeadline += offsetAbs
-          }
-          if currentBit == 0 && nextBit == 1 {
-            nextDeadline -= offsetAbs
-          }
+          nextDeadline = actualTime + expectedDurations[i]
         }
 
         while mach_absolute_time() < nextDeadline { /* spin */ }
