@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "ProjectL289Mobile",
+    "name": "Project289",
     "slug": "ProjectL289Mobile",
     "version": "1.0.0",
     "jsEngine": "hermes",
@@ -11,7 +11,10 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.ProjectL289Mobile"
+      "bundleIdentifier": "dev.markwatson.ProjectL289Mobile",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Camera access is required to use the LED flash for optical watch synchronization."
+      }
     },
     "android": {
       "adaptiveIcon": {
