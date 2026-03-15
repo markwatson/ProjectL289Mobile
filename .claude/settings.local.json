@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__apple-docs__get_documentation",
+      "mcp__apple-docs__search_symbols"
+    ]
+  }
+}

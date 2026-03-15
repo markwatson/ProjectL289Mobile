@@ -104,11 +104,14 @@ def edges_to_runs(edges: list[tuple[float, int]]) -> list[tuple[int, float]]:
     return runs
 
 
-def estimate_offset(runs: list[tuple[int, float]]) -> float:
-    """Estimate the offset compensation from observed run durations.
+def estimate_timing(runs: list[tuple[int, float]]) -> tuple[float, float]:
+    """Estimate the actual bit period and offset compensation from run durations.
 
-    For runs in the plausible bit-period range, single-bit ON runs should
-    cluster around (30 + offset) and single-bit OFF runs around (30 - offset).
+    Single-bit ON runs cluster around (period + offset), single-bit OFF runs
+    around (period - offset). The bit period may differ from the 30ms spec
+    target if the transmitter snaps to display frame boundaries.
+
+    Returns (bit_period_ms, offset_ms).
     """
     on_singles = []
     off_singles = []
@@ -122,16 +125,22 @@ def estimate_offset(runs: list[tuple[int, float]]) -> float:
     if on_singles and off_singles:
         on_med = statistics.median(on_singles)
         off_med = statistics.median(off_singles)
+        period = (on_med + off_med) / 2
         offset = (on_med - off_med) / 2
-        return offset
-    return 0.0
+        return period, offset
+
+    # Fallback: use all short runs to estimate period, assume no offset
+    all_singles = [dur for _, dur in runs if 20 < dur < 45]
+    if all_singles:
+        return statistics.median(all_singles), 0.0
+    return BIT_PERIOD_MS, 0.0
 
 
-def runs_to_bits(runs: list[tuple[int, float]], offset: float) -> tuple[list[int], list[dict]]:
-    """Convert runs to a bitstream using run-length decoding with offset.
+def runs_to_bits(runs: list[tuple[int, float]], bit_period: float, offset: float) -> tuple[list[int], list[dict]]:
+    """Convert runs to a bitstream using run-length decoding.
 
-    ON run of N bits: duration ~ N * 30 + offset
-    OFF run of N bits: duration ~ N * 30 - offset
+    ON run of N bits: duration ~ N * bit_period + offset
+    OFF run of N bits: duration ~ N * bit_period - offset
 
     Returns (bitstream, run_details) where run_details has per-run info.
     """
@@ -140,11 +149,11 @@ def runs_to_bits(runs: list[tuple[int, float]], offset: float) -> tuple[list[int
 
     for v, dur in runs:
         if v == 1:
-            n = max(1, round((dur - offset) / BIT_PERIOD_MS))
+            n = max(1, round((dur - offset) / bit_period))
         else:
-            n = max(1, round((dur + offset) / BIT_PERIOD_MS))
+            n = max(1, round((dur + offset) / bit_period))
 
-        expected = n * BIT_PERIOD_MS + (offset if v == 1 else -offset)
+        expected = n * bit_period + (offset if v == 1 else -offset)
         err = dur - expected
 
         details.append({"value": v, "duration": dur, "bits": n, "error": err})
@@ -323,20 +332,44 @@ def analyze_capture(path: str) -> dict:
     """Full analysis of a single capture file."""
     edges = load_edges(path)
     runs = edges_to_runs(edges)
-    offset = estimate_offset(runs)
 
-    # Find the first ON run that looks like actual data (skip idle periods)
+    # Skip idle, wake-up pulse, and gap to find actual data start.
+    # Wake-up pulse: long ON (>150ms), gap: OFF after wake-up (~50ms).
+    # Data runs are all <150ms (max ~5 bits × 30ms = 150ms).
     data_start = 0
-    for i, (v, dur) in enumerate(runs):
+    i = 0
+    while i < len(runs):
+        v, dur = runs[i]
         if v == 0 and dur > 200:  # long idle OFF
             data_start = i + 1
+            i += 1
             continue
-        if v == 1 and dur > 5:  # first real ON run
+        if v == 1 and dur > 150:  # wake-up pulse — skip it and the following gap
+            data_start = i + 1
+            # Also skip the gap (OFF run after wake-up)
+            if i + 1 < len(runs) and runs[i + 1][0] == 0 and runs[i + 1][1] < 100:
+                data_start = i + 2
+            i = data_start
+            continue
+        if v == 1 and dur > 5:  # first real data ON run
             data_start = i
             break
+        i += 1
+
+    # Detect wake-up pulse in pre-data runs
+    wakeup_ms = None
+    gap_ms = None
+    for j in range(data_start):
+        v, dur = runs[j]
+        if v == 1 and dur > 150:
+            wakeup_ms = dur
+            # Check for gap after wake-up
+            if j + 1 < len(runs) and runs[j + 1][0] == 0 and runs[j + 1][1] < 100:
+                gap_ms = runs[j + 1][1]
 
     data_runs = runs[data_start:]
-    raw_bits, run_details = runs_to_bits(data_runs, offset)
+    bit_period, offset = estimate_timing(data_runs)
+    raw_bits, run_details = runs_to_bits(data_runs, bit_period, offset)
 
     # Collect timing stats from data runs
     errors = [abs(d["error"]) for d in run_details if d["duration"] < 200]
@@ -344,9 +377,15 @@ def analyze_capture(path: str) -> dict:
     result = {
         "file": path,
         "total_edges": len(edges),
+        "bit_period_ms": bit_period,
         "offset_ms": offset,
         "raw_bit_count": len(raw_bits),
     }
+
+    if wakeup_ms is not None:
+        result["wakeup_ms"] = wakeup_ms
+        if gap_ms is not None:
+            result["gap_ms"] = gap_ms
 
     if errors:
         result["mean_timing_error_ms"] = statistics.mean(errors)
@@ -447,6 +486,12 @@ def print_analysis(result: dict):
     print(f"  Capture: {result['file']}")
     print(f"{'=' * 64}")
     print(f"  Total edges:        {result['total_edges']}")
+    if "wakeup_ms" in result:
+        gap_str = f" + {result['gap_ms']:.1f}ms gap" if "gap_ms" in result else ""
+        print(f"  Wake-up pulse:      {result['wakeup_ms']:.1f} ms{gap_str}")
+    else:
+        print(f"  Wake-up pulse:      not detected")
+    print(f"  Bit period (detected): {result['bit_period_ms']:.1f} ms  (spec: {BIT_PERIOD_MS} ms)")
     print(f"  Offset compensation: {result['offset_ms']:.1f} ms")
     print(f"  Raw bits decoded:   {result['raw_bit_count']}")
 
@@ -522,6 +567,9 @@ def compare_captures(a: dict, b: dict):
     print("  COMPARISON")
     print(f"{'=' * 64}")
 
+    print(f"  Bit period (detected):")
+    print(f"    Capture A:  {a['bit_period_ms']:.1f} ms")
+    print(f"    Capture B:  {b['bit_period_ms']:.1f} ms")
     print(f"  Offset compensation:")
     print(f"    Capture A:  {a['offset_ms']:.1f} ms")
     print(f"    Capture B:  {b['offset_ms']:.1f} ms")

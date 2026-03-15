@@ -166,24 +166,9 @@ export default function FlashScreen() {
     setStatusText(`Transmitting ${bitstream.length} bits (~${estimatedDurationSec}s)...`);
 
     if (flashMode === 'torch') {
-      // === Native torch transmission ===
+      // === Native torch transmission (handles wake-up pulse internally) ===
       setTransmitterState('transmitting');
 
-      // Wake-up pulse via expo-torch (coarse timing is fine for wake-up)
-      try {
-        await ExpoTorch?.setStateAsync(ExpoTorch.ON);
-        await new Promise(resolve => setTimeout(resolve, 200));
-        await ExpoTorch?.setStateAsync(ExpoTorch.OFF);
-        await new Promise(resolve => setTimeout(resolve, 50));
-      } catch (e) {
-        setTransmitterState('error');
-        setStatusText(`Torch error: ${e}`);
-        cleanup();
-        appStateSub.remove();
-        return;
-      }
-
-      // Native high-precision payload transmission
       try {
         const result = await transmitViaTorch(bitstream, BIT_PERIOD_MS, torchOffsetMs);
         setTransmitterState('done');
