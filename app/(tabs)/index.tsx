@@ -181,21 +181,6 @@ export default function FlashScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.label}>LED Offset ({torchOffsetMs}ms)</Text>
-      <View style={styles.offsetRow}>
-        {[0, 2, 5, 8, 10, 13, 15].map(v => (
-          <TouchableOpacity
-            key={v}
-            style={[styles.offsetButton, torchOffsetMs === v && styles.offsetButtonActive]}
-            onPress={() => setTorchOffsetMs(v)}
-          >
-            <Text style={[styles.offsetButtonText, torchOffsetMs === v && styles.offsetButtonTextActive]}>
-              {v}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
       <Text style={styles.label}>Timezone</Text>
       <View style={styles.pickerContainer}>
         <Picker
@@ -250,6 +235,23 @@ export default function FlashScreen() {
         <Text style={styles.instructionStep}>{"3. Align the LED on the back of your phone with 12 o'clock on the watch (hold about 1 inch / 3cm above)"}</Text>
         <Text style={styles.instructionStep}>{"4. Press \"Flash\" and hold steady until complete"}</Text>
         <Text style={styles.instructionStep}>5. The hands will briefly jump to acknowledge reception</Text>
+        <Text style={styles.instructionStep}>6. If the watch doesn't respond, try adjusting the alignment or changing the LED timing offset below</Text>
+      </View>
+
+      <Text style={styles.label}>LED Timing Offset ({torchOffsetMs}ms)</Text>
+      <Text style={styles.offsetHint}>Compensates for LED response time. Increase if transmissions aren't received.</Text>
+      <View style={styles.offsetRow}>
+        {[0, 2, 5, 8, 10, 13, 15].map(v => (
+          <TouchableOpacity
+            key={v}
+            style={[styles.offsetButton, torchOffsetMs === v && styles.offsetButtonActive]}
+            onPress={() => setTorchOffsetMs(v)}
+          >
+            <Text style={[styles.offsetButtonText, torchOffsetMs === v && styles.offsetButtonTextActive]}>
+              {v}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
     </ScrollView>
   );
@@ -264,18 +266,6 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 60,
     paddingBottom: 40,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#888',
-    textAlign: 'center',
-    marginBottom: 24,
   },
   label: {
     fontSize: 14,
@@ -400,6 +390,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#fff',
     textAlign: 'center',
+  },
+  offsetHint: {
+    color: '#777',
+    fontSize: 12,
+    marginBottom: 8,
   },
   offsetRow: {
     flexDirection: 'row',
