@@ -181,9 +181,6 @@ export default function FlashScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>VHP GMT Flash</Text>
-      <Text style={styles.subtitle}>Watch optical synchronization</Text>
-
       <Text style={styles.label}>LED Offset ({torchOffsetMs}ms)</Text>
       <View style={styles.offsetRow}>
         {[0, 2, 5, 8, 10, 13, 15].map(v => (
