@@ -182,8 +182,10 @@ export default function FlashScreen() {
         setTimeout(() => cleanup(), 2000);
       } catch (e) {
         setTransmitterState('error');
-        setStatusText(`Error: ${e}`);
-        cleanup();
+        const msg = e instanceof Error ? e.message : String(e);
+        setStatusText(`Error: ${msg}`);
+        setProgressText('');
+        setTimeout(() => cleanup(), 4000);
       }
     } else {
       // === Screen flash transmission (unchanged) ===

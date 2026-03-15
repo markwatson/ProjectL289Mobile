@@ -6,7 +6,6 @@ public class NativeTorchTransmitterModule: Module {
     Name("NativeTorchTransmitter")
 
     AsyncFunction("transmitBitstream") { (bitstream: [Int], bitPeriodMs: Double, offsetMs: Double, promise: Promise) in
-      // Request camera permission first (torch requires camera access on iOS)
       let status = AVCaptureDevice.authorizationStatus(for: .video)
       switch status {
       case .notDetermined:
@@ -19,15 +18,27 @@ public class NativeTorchTransmitterModule: Module {
         }
       case .authorized:
         self.doTransmit(bitstream: bitstream, bitPeriodMs: bitPeriodMs, offsetMs: offsetMs, promise: promise)
-      default:
-        promise.reject("E_NO_PERMISSION", "Camera permission denied — required for torch access")
+      case .denied:
+        promise.reject("E_NO_PERMISSION", "Camera permission denied — enable in Settings > Privacy > Camera")
+      case .restricted:
+        promise.reject("E_NO_PERMISSION", "Camera access is restricted on this device")
+      @unknown default:
+        promise.reject("E_NO_PERMISSION", "Camera permission unavailable (unknown status)")
       }
     }
   }
 
   private func doTransmit(bitstream: [Int], bitPeriodMs: Double, offsetMs: Double, promise: Promise) {
-    guard let device = AVCaptureDevice.default(for: .video), device.hasTorch else {
-      promise.reject("E_NO_FLASH", "No torch available on this device")
+    guard let device = AVCaptureDevice.default(for: .video) else {
+      promise.reject("E_NO_DEVICE", "No video capture device found")
+      return
+    }
+    guard device.hasTorch else {
+      promise.reject("E_NO_FLASH", "This device does not have a torch")
+      return
+    }
+    guard device.isTorchAvailable else {
+      promise.reject("E_TORCH_UNAVAILABLE", "Torch is temporarily unavailable (device may be overheating)")
       return
     }
 
@@ -38,13 +49,14 @@ public class NativeTorchTransmitterModule: Module {
     let thread = Thread {
       var periods: [UInt64] = []
       var locked = false
+      var torchError: Error? = nil
 
       do {
         try device.lockForConfiguration()
         locked = true
 
-        func torchOn() {
-          try? device.setTorchModeOn(level: AVCaptureDevice.maxAvailableTorchLevel)
+        func torchOn() throws {
+          try device.setTorchModeOn(level: AVCaptureDevice.maxAvailableTorchLevel)
         }
         func torchOff() {
           device.torchMode = .off
@@ -58,7 +70,6 @@ public class NativeTorchTransmitterModule: Module {
         func nanosToAbs(_ ns: UInt64) -> UInt64 {
           return ns * denom / numer
         }
-
         func absToNanos(_ abs: UInt64) -> UInt64 {
           return abs * numer / denom
         }
@@ -70,7 +81,7 @@ public class NativeTorchTransmitterModule: Module {
         let wakeOnAbs = nanosToAbs(200_000_000)
         let wakeGapAbs = nanosToAbs(50_000_000)
 
-        torchOn()
+        try torchOn()
         let wakeStart = mach_absolute_time()
         while mach_absolute_time() < wakeStart + wakeOnAbs { /* spin */ }
 
@@ -81,10 +92,9 @@ public class NativeTorchTransmitterModule: Module {
         // === Payload transmission ===
         var nextDeadline = mach_absolute_time() + periodAbs
 
-        // Handle first bit
         if !bits.isEmpty {
           if bits[0] == 1 {
-            torchOn()
+            try torchOn()
             nextDeadline += offsetAbs
           } else {
             torchOff()
@@ -92,10 +102,7 @@ public class NativeTorchTransmitterModule: Module {
         }
 
         for i in 1..<bits.count {
-          // Busy-wait until deadline
-          while mach_absolute_time() < nextDeadline {
-            // spin
-          }
+          while mach_absolute_time() < nextDeadline { /* spin */ }
 
           let actualTime = mach_absolute_time()
           periods.append(absToNanos(actualTime - (nextDeadline - periodAbs)))
@@ -105,35 +112,28 @@ public class NativeTorchTransmitterModule: Module {
           let nextBit = (i < bits.count - 1) ? bits[i + 1] : 0
 
           if currentBit == 1 {
-            torchOn()
+            try torchOn()
           } else {
             torchOff()
           }
 
-          // Calculate next deadline with offset compensation
           nextDeadline = actualTime + periodAbs
 
-          // Rising edge: prev=0, current=1 — extend this 1-bit
           if prevBit == 0 && currentBit == 1 {
             nextDeadline += offsetAbs
           }
-          // About to rise: current=0, next=1 — shorten this 0-bit
           if currentBit == 0 && nextBit == 1 {
             nextDeadline -= offsetAbs
           }
         }
 
-        // Wait for last bit to complete
-        while mach_absolute_time() < nextDeadline {
-          // spin
-        }
+        while mach_absolute_time() < nextDeadline { /* spin */ }
 
-        // Ensure torch is off
         torchOff()
         device.unlockForConfiguration()
         locked = false
 
-        // Calculate timing stats
+        // Timing stats
         let periodMs = periods.map { Double($0) / 1_000_000.0 }
         let mean = periodMs.isEmpty ? 0.0 : periodMs.reduce(0, +) / Double(periodMs.count)
         let variance = periodMs.count > 1
@@ -157,7 +157,7 @@ public class NativeTorchTransmitterModule: Module {
           device.torchMode = .off
           device.unlockForConfiguration()
         }
-        promise.reject("E_TRANSMIT_FAILED", "Transmission failed: \(error.localizedDescription)")
+        promise.reject("E_TRANSMIT_FAILED", "Torch transmission failed: \(error.localizedDescription)")
       }
     }
 
