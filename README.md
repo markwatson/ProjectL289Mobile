@@ -133,7 +133,7 @@ Special thanks to **DaveM** from the WatchUSeek forums for his foundational [rev
 ### Legal Notice
 This project is an independent effort created for the purposes of interoperability, preservation, and right-to-repair. It is not affiliated with, authorized by, or endorsed by The Swatch Group, Longines, or any of their subsidiaries. All product names, trademarks, and registered trademarks are property of their respective owners.
 
-This implementation was developed as a clean-room style implementation of a functional communication protocol. No copyrighted code from proprietary applications is distributed in this repository.
+This implementation was developed through independent analysis of the communication protocol. No copyrighted code from proprietary applications is distributed in this repository.
 
 ### Limitation of Liability
 **USE AT YOUR OWN RISK.** This software interacts with the internal firmware of high-precision electronic devices. The authors and contributors are not responsible for any damage to hardware, loss of data, or voiding of warranties that may occur through the use of this software.
