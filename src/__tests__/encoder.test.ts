@@ -270,7 +270,7 @@ describe('assembleFrame', () => {
     expect(dateBits).toEqual([0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0]);
   });
 
-  test('DST active increments shift by 1', () => {
+  test('DST active does not modify shift (watch applies DST from transition dates)', () => {
     const frameNoDst = assembleFrame({
       targetTimezone: 'T1',
       utcTime: new Date(Date.UTC(2026, 2, 6, 12, 0, 0)),
@@ -287,10 +287,9 @@ describe('assembleFrame', () => {
     const tzNoDst = frameNoDst.slice(20, 28);
     const tzWithDst = frameWithDst.slice(20, 28);
 
-    // Without DST: shift=1 MSB=00001, min=00, hem=0 -> 00001000
+    // Both should encode the base shift=1: MSB=00001, min=00, hem=0 -> 00001000
     expect(tzNoDst).toEqual([0, 0, 0, 0, 1, 0, 0, 0]);
-    // With DST: shift=2 MSB=00010, min=00, hem=0 -> 00010000
-    expect(tzWithDst).toEqual([0, 0, 0, 1, 0, 0, 0, 0]);
+    expect(tzWithDst).toEqual([0, 0, 0, 0, 1, 0, 0, 0]);
   });
 });
 

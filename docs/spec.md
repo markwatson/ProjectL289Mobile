@@ -114,7 +114,7 @@ All fields are packed MSB-first. Values are converted into binary arrays and con
 | MinuteShift | 2 | 0–2 | 0=none, 1=+30min, 2=+45min |
 | Hemisphere | 1 | 0–1 | 0=North, 1=South |
 
-*Note: If DST is currently active, the base `Shift` value must be incremented by 1 prior to encoding.*
+*Note: The `Shift` value must always be the **standard-time** (non-DST) UTC offset. When DST transition dates are included in the frame (via `DST_DATE_TIME_SW`), the watch applies the DST adjustment autonomously. Do not pre-increment the shift — doing so causes a double application of the DST offset.*
 
 #### DstDateTimeMessage (15 bits)
 
